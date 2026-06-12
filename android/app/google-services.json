@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "684485603757",
+    "project_id": "prueba-flutter-ca510",
+    "storage_bucket": "prueba-flutter-ca510.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:684485603757:android:a0026b728aa55f548a3124",
+        "android_client_info": {
+          "package_name": "com.example.login_indilingo"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBxletsYyI8zgIJRNHx2ro0_7L_KhXaIEw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

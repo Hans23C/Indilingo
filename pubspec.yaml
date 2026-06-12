@@ -1,0 +1,27 @@
+name: login_indilingo
+description: "A new Flutter project."
+
+publish_to: 'none' 
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  http: ^1.2.0   # ← agregar esta línea
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  # Activa los iconos de Material (esto quitará los cuadros con X en las flechas)
+  uses-material-design: true
+
+  # Declaración de la carpeta de imágenes
+  assets:
+    - assets/images/
