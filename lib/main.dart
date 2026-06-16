@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'inicio_screen.dart';
 import 'recuperar_contrasena.dart';
 import 'registros_usuarios.dart';
+import 'theme_controller.dart';
 
 void main() {
   runApp(const IndilingoApp());
@@ -14,27 +15,66 @@ class IndilingoApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const primaryDark = Color(0xFF134343);
+    const darkBackground = Color(0xFF101C1C);
+    const darkSurface = Color(0xFF182929);
 
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'INDIlingo',
-      theme: ThemeData(
-        useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFFFDF1E1),
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: primaryDark,
-          primary: primaryDark,
-          surface: const Color(0xFFFDF1E1),
-        ),
-        snackBarTheme: SnackBarThemeData(
-          backgroundColor: primaryDark,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+    return ValueListenableBuilder<bool>(
+      valueListenable: AppThemeController.isDarkMode,
+      builder: (context, isDarkMode, _) {
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: 'INDIlingo',
+          themeMode: isDarkMode ? ThemeMode.dark : ThemeMode.light,
+          theme: ThemeData(
+            useMaterial3: true,
+            scaffoldBackgroundColor: const Color(0xFFFDF1E1),
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: primaryDark,
+              primary: primaryDark,
+              surface: const Color(0xFFFDF1E1),
+            ),
+            appBarTheme: const AppBarTheme(
+              backgroundColor: Colors.white,
+              foregroundColor: primaryDark,
+              surfaceTintColor: Colors.transparent,
+            ),
+            snackBarTheme: SnackBarThemeData(
+              backgroundColor: primaryDark,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
           ),
-        ),
-      ),
-      home: const LoginScreen(),
+          darkTheme: ThemeData(
+            useMaterial3: true,
+            brightness: Brightness.dark,
+            scaffoldBackgroundColor: darkBackground,
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: const Color(0xFF5ED6CE),
+              brightness: Brightness.dark,
+              primary: const Color(0xFF5ED6CE),
+              surface: darkSurface,
+            ),
+            appBarTheme: const AppBarTheme(
+              backgroundColor: darkSurface,
+              foregroundColor: Colors.white,
+              surfaceTintColor: Colors.transparent,
+            ),
+            drawerTheme: const DrawerThemeData(backgroundColor: darkSurface),
+            snackBarTheme: SnackBarThemeData(
+              backgroundColor: const Color(0xFF5ED6CE),
+              contentTextStyle: const TextStyle(color: Colors.black),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+          ),
+          home: const LoginScreen(),
+          routes: {'/login': (_) => const LoginScreen()},
+        );
+      },
     );
   }
 }
@@ -119,7 +159,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const Text(
                     'Aprende lenguas originarias a tu ritmo.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.black54, fontSize: 15),
+                    style: TextStyle(fontSize: 15),
                   ),
                   const SizedBox(height: 30),
                   _buildTextField(
@@ -234,7 +274,7 @@ class _LoginScreenState extends State<LoginScreen> {
       },
       decoration: InputDecoration(
         filled: true,
-        fillColor: Colors.white,
+        fillColor: Theme.of(context).colorScheme.surface,
         hintText: hint,
         prefixIcon: Icon(icon),
         suffixIcon: suffix,

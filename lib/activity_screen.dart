@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'course_data.dart';
 
-class ActivityScreen extends StatelessWidget {
+class ActivityScreen extends StatefulWidget {
   final CourseLanguage language;
   final CourseSection section;
   final CourseActivity activity;
@@ -15,49 +15,41 @@ class ActivityScreen extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final locked = activity.status == ActivityStatus.locked;
+  State<ActivityScreen> createState() => _ActivityScreenState();
+}
 
+class _ActivityScreenState extends State<ActivityScreen> {
+  final TextEditingController _answerController = TextEditingController();
+  final List<String> _selectedWords = [];
+  String? _selectedOption;
+  bool _streakConfirmed = false;
+  bool _isCorrect = false;
+
+  CourseActivity get activity => widget.activity;
+  CourseLanguage get language => widget.language;
+  CourseSection get section => widget.section;
+  bool get locked => activity.status == ActivityStatus.locked;
+
+  @override
+  void dispose() {
+    _answerController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF134343),
-        title: Text(section.title),
-      ),
+      appBar: AppBar(title: Text(section.title)),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(22),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Container(
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: section.color,
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: Row(
-                  children: [
-                    Icon(section.icon, color: language.color, size: 38),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            activity.title,
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text('${language.name} · ${section.title}'),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+              _ActivityHeader(
+                language: language,
+                section: section,
+                activity: activity,
               ),
               const SizedBox(height: 22),
               Text(
@@ -77,30 +69,38 @@ class ActivityScreen extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               _PracticeBox(
-                section: section,
                 activity: activity,
                 locked: locked,
+                answerController: _answerController,
+                selectedOption: _selectedOption,
+                selectedWords: _selectedWords,
+                streakConfirmed: _streakConfirmed,
+                onOptionSelected: (option) {
+                  setState(() => _selectedOption = option);
+                },
+                onWordSelected: (word) {
+                  setState(() => _selectedWords.add(word));
+                },
+                onWordRemoved: (word) {
+                  setState(() => _selectedWords.remove(word));
+                },
+                onStreakConfirmed: () {
+                  setState(() => _streakConfirmed = true);
+                },
               ),
+              if (_isCorrect) ...[
+                const SizedBox(height: 16),
+                _SuccessMessage(message: activity.successMessage),
+              ],
               const SizedBox(height: 24),
               SizedBox(
                 height: 52,
                 child: ElevatedButton.icon(
-                  onPressed: locked
-                      ? null
-                      : () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Actividad completada en modo práctica.',
-                              ),
-                            ),
-                          );
-                          Navigator.pop(context);
-                        },
+                  onPressed: locked ? null : _checkAnswer,
                   icon: Icon(
                     locked ? Icons.lock_outline : Icons.check_circle_outline,
                   ),
-                  label: Text(locked ? 'Bloqueada' : 'Marcar como completada'),
+                  label: Text(locked ? 'Bloqueada' : 'Revisar actividad'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: language.color,
                     foregroundColor: Colors.white,
@@ -118,60 +118,150 @@ class ActivityScreen extends StatelessWidget {
       ),
     );
   }
+
+  void _checkAnswer() {
+    final correct = switch (activity.type) {
+      ActivityType.writing =>
+        _normalize(_answerController.text) == _normalize(activity.answer),
+      ActivityType.multipleChoice => _selectedOption == activity.answer,
+      ActivityType.streak => _streakConfirmed,
+      ActivityType.sentenceOrder => _selectedWords.join(' ') == activity.answer,
+    };
+
+    setState(() => _isCorrect = correct);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          correct
+              ? activity.successMessage
+              : 'Todavía no. Revisa la pista e intenta otra vez.',
+        ),
+      ),
+    );
+
+    if (correct) {
+      Future.delayed(const Duration(milliseconds: 700), () {
+        if (mounted) Navigator.pop(context);
+      });
+    }
+  }
+
+  String _normalize(String value) {
+    return value.trim().toLowerCase();
+  }
 }
 
-class _PracticeBox extends StatelessWidget {
+class _ActivityHeader extends StatelessWidget {
+  final CourseLanguage language;
   final CourseSection section;
   final CourseActivity activity;
-  final bool locked;
 
-  const _PracticeBox({
+  const _ActivityHeader({
+    required this.language,
     required this.section,
     required this.activity,
-    required this.locked,
   });
 
   @override
   Widget build(BuildContext context) {
-    final child = switch (section.area) {
-      SkillArea.escritura => TextField(
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: section.color,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        children: [
+          Icon(section.icon, color: language.color, size: 38),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  activity.title,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text('${language.name} · ${section.title}'),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PracticeBox extends StatelessWidget {
+  final CourseActivity activity;
+  final bool locked;
+  final TextEditingController answerController;
+  final String? selectedOption;
+  final List<String> selectedWords;
+  final bool streakConfirmed;
+  final ValueChanged<String> onOptionSelected;
+  final ValueChanged<String> onWordSelected;
+  final ValueChanged<String> onWordRemoved;
+  final VoidCallback onStreakConfirmed;
+
+  const _PracticeBox({
+    required this.activity,
+    required this.locked,
+    required this.answerController,
+    required this.selectedOption,
+    required this.selectedWords,
+    required this.streakConfirmed,
+    required this.onOptionSelected,
+    required this.onWordSelected,
+    required this.onWordRemoved,
+    required this.onStreakConfirmed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final child = switch (activity.type) {
+      ActivityType.writing => TextField(
+        controller: answerController,
         enabled: !locked,
         minLines: 4,
         maxLines: 6,
         decoration: InputDecoration(
-          hintText: 'Escribe aquí: ${activity.answer}',
+          hintText: 'Escribe tu respuesta',
           filled: true,
-          fillColor: Colors.white,
+          fillColor: Theme.of(context).colorScheme.surface,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
         ),
       ),
-      SkillArea.lectura => _OptionList(answer: activity.answer, locked: locked),
-      SkillArea.hablado => Column(
-        children: [
-          Icon(
-            Icons.mic_none,
-            size: 70,
-            color: locked ? Colors.grey : const Color(0xFF134343),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            locked
-                ? 'Micrófono bloqueado'
-                : 'Pulsa mentalmente grabar y repite: ${activity.answer}',
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-      SkillArea.gramatica => _GrammarTiles(
-        answer: activity.answer,
+      ActivityType.multipleChoice => _OptionList(
+        activity: activity,
+        selectedOption: selectedOption,
         locked: locked,
+        onSelected: onOptionSelected,
+      ),
+      ActivityType.streak => _StreakPractice(
+        activity: activity,
+        locked: locked,
+        confirmed: streakConfirmed,
+        onConfirmed: onStreakConfirmed,
+      ),
+      ActivityType.sentenceOrder => _SentenceOrderPractice(
+        activity: activity,
+        locked: locked,
+        selectedWords: selectedWords,
+        onWordSelected: onWordSelected,
+        onWordRemoved: onWordRemoved,
       ),
     };
 
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
       ),
@@ -181,22 +271,35 @@ class _PracticeBox extends StatelessWidget {
 }
 
 class _OptionList extends StatelessWidget {
-  final String answer;
+  final CourseActivity activity;
+  final String? selectedOption;
   final bool locked;
+  final ValueChanged<String> onSelected;
 
-  const _OptionList({required this.answer, required this.locked});
+  const _OptionList({
+    required this.activity,
+    required this.selectedOption,
+    required this.locked,
+    required this.onSelected,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final options = [answer, 'saludo', 'camino', 'comunidad'];
-
     return Column(
-      children: options.map((option) {
+      children: activity.options.map((option) {
+        final selected = option == selectedOption;
         return Container(
           width: double.infinity,
           margin: const EdgeInsets.only(bottom: 10),
           child: OutlinedButton(
-            onPressed: locked ? null : () {},
+            onPressed: locked ? null : () => onSelected(option),
+            style: OutlinedButton.styleFrom(
+              backgroundColor: selected ? const Color(0xFFD1E9E9) : null,
+              side: BorderSide(
+                color: selected ? const Color(0xFF134343) : Colors.black26,
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
             child: Text(option),
           ),
         );
@@ -205,27 +308,124 @@ class _OptionList extends StatelessWidget {
   }
 }
 
-class _GrammarTiles extends StatelessWidget {
-  final String answer;
+class _StreakPractice extends StatelessWidget {
+  final CourseActivity activity;
   final bool locked;
+  final bool confirmed;
+  final VoidCallback onConfirmed;
 
-  const _GrammarTiles({required this.answer, required this.locked});
+  const _StreakPractice({
+    required this.activity,
+    required this.locked,
+    required this.confirmed,
+    required this.onConfirmed,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final parts = ['Yo', 'aprendo', answer];
+    return Column(
+      children: [
+        Icon(
+          confirmed ? Icons.local_fire_department : Icons.today_outlined,
+          size: 70,
+          color: locked ? Colors.grey : const Color(0xFF134343),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          locked ? 'Racha bloqueada' : 'Confirma tu ingreso de hoy',
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: 14),
+        OutlinedButton.icon(
+          onPressed: locked ? null : onConfirmed,
+          icon: Icon(confirmed ? Icons.check : Icons.bolt_outlined),
+          label: Text(confirmed ? 'Día registrado' : 'Registrar racha'),
+        ),
+      ],
+    );
+  }
+}
 
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      children: parts.map((part) {
-        return Chip(
-          label: Text(part),
-          backgroundColor: locked
-              ? Colors.grey.shade200
-              : const Color(0xFFFFF6C5),
-        );
-      }).toList(),
+class _SentenceOrderPractice extends StatelessWidget {
+  final CourseActivity activity;
+  final bool locked;
+  final List<String> selectedWords;
+  final ValueChanged<String> onWordSelected;
+  final ValueChanged<String> onWordRemoved;
+
+  const _SentenceOrderPractice({
+    required this.activity,
+    required this.locked,
+    required this.selectedWords,
+    required this.onWordSelected,
+    required this.onWordRemoved,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final availableWords = activity.options
+        .where((word) => !selectedWords.contains(word))
+        .toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: selectedWords.isEmpty
+              ? [
+                  Chip(
+                    label: Text(
+                      locked ? 'Frase bloqueada' : 'Toca las palabras abajo',
+                    ),
+                  ),
+                ]
+              : selectedWords.map((word) {
+                  return ActionChip(
+                    label: Text(word),
+                    onPressed: locked ? null : () => onWordRemoved(word),
+                    backgroundColor: const Color(0xFFFFF6C5),
+                  );
+                }).toList(),
+        ),
+        const SizedBox(height: 18),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: availableWords.map((word) {
+            return ActionChip(
+              label: Text(word),
+              onPressed: locked ? null : () => onWordSelected(word),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+}
+
+class _SuccessMessage extends StatelessWidget {
+  final String message;
+
+  const _SuccessMessage({required this.message});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE0F4DD),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.check_circle, color: Color(0xFF2E7D32)),
+          const SizedBox(width: 10),
+          Expanded(child: Text(message)),
+        ],
+      ),
     );
   }
 }

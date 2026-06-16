@@ -13,18 +13,13 @@ class LanguagePathScreen extends StatelessWidget {
     required this.section,
   });
 
-  static const Color primaryDark = Color(0xFF134343);
-  static const double _pathAspectRatio = 1060 / 1260;
+  static const double _pathAspectRatio = 1060 / 4200;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFDF1E1),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: primaryDark,
-        title: Text('${language.name} · ${section.title}'),
-      ),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: AppBar(title: Text('${language.name} · ${section.title}')),
       body: SafeArea(
         child: Column(
           children: [
@@ -58,7 +53,7 @@ class LanguagePathScreen extends StatelessWidget {
                           ),
                           ...List.generate(section.activities.length, (index) {
                             final activity = section.activities[index];
-                            final position = _nodePositions[index];
+                            final position = _nodePosition(index);
                             return Positioned(
                               left:
                                   position.dx * constraints.maxWidth -
@@ -101,18 +96,11 @@ class LanguagePathScreen extends StatelessWidget {
     );
   }
 
-  static const List<Offset> _nodePositions = [
-    Offset(0.18, 0.15),
-    Offset(0.50, 0.23),
-    Offset(0.78, 0.16),
-    Offset(0.22, 0.36),
-    Offset(0.48, 0.45),
-    Offset(0.76, 0.39),
-    Offset(0.66, 0.58),
-    Offset(0.25, 0.64),
-    Offset(0.47, 0.78),
-    Offset(0.73, 0.84),
-  ];
+  static Offset _nodePosition(int index) {
+    const columns = [0.20, 0.50, 0.78, 0.36, 0.64];
+    final y = 0.035 + index * (0.93 / (maxActivitiesPerSection - 1));
+    return Offset(columns[index % columns.length], y);
+  }
 }
 
 class _ProgressHeader extends StatelessWidget {
@@ -126,7 +114,7 @@ class _ProgressHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
       ),
@@ -154,13 +142,11 @@ class _ProgressHeader extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 7),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(99),
-                  child: LinearProgressIndicator(
-                    value: section.progress,
-                    minHeight: 8,
-                    color: language.color,
-                    backgroundColor: language.color.withValues(alpha: 0.14),
+                Text(
+                  '${section.exp} EXP acumulada en este apartado',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
@@ -168,13 +154,15 @@ class _ProgressHeader extends StatelessWidget {
           ),
           const SizedBox(width: 12),
           Text(
-            '${(section.progress * 100).round()}%',
+            '${section.activities.length}',
             style: TextStyle(
               color: language.color,
               fontSize: 18,
               fontWeight: FontWeight.w900,
             ),
           ),
+          const SizedBox(width: 4),
+          const Text('act.'),
         ],
       ),
     );

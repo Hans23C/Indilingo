@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'course_data.dart';
 import 'language_sections_screen.dart';
+import 'menu_screens.dart';
+import 'ranks_screen.dart';
 
 class InicioScreen extends StatefulWidget {
   const InicioScreen({super.key});
@@ -12,7 +14,6 @@ class InicioScreen extends StatefulWidget {
 
 class _InicioScreenState extends State<InicioScreen>
     with SingleTickerProviderStateMixin {
-  static const Color bgColor = Color(0xFFFDF1E1);
   static const Color primaryDark = Color(0xFF134343);
 
   final PageController _pageController = PageController(viewportFraction: 0.9);
@@ -101,18 +102,27 @@ class _InicioScreenState extends State<InicioScreen>
     final selected = _languages[_currentPage];
 
     return Scaffold(
-      backgroundColor: bgColor,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      drawer: _MainDrawer(languages: _languages),
       appBar: AppBar(
-        backgroundColor: Colors.white,
         elevation: 0,
         automaticallyImplyLeading: false,
-        title: const Text(
-          'Inicio',
-          style: TextStyle(
-            color: Colors.black87,
-            fontWeight: FontWeight.bold,
-            fontSize: 22,
-          ),
+        leading: Builder(
+          builder: (context) {
+            return IconButton(
+              tooltip: 'Abrir menú',
+              onPressed: () => Scaffold.of(context).openDrawer(),
+              icon: Icon(
+                Icons.menu,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            );
+          },
+        ),
+        title: const SizedBox.shrink(),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(3),
+          child: Container(height: 3, color: const Color(0xFF2098F3)),
         ),
         actions: [
           Padding(
@@ -157,7 +167,7 @@ class _InicioScreenState extends State<InicioScreen>
             ),
             const SizedBox(height: 22),
             SizedBox(
-              height: 112,
+              height: 132,
               child: PageView.builder(
                 controller: _pageController,
                 itemCount: _languages.length,
@@ -227,7 +237,7 @@ class _InicioScreenState extends State<InicioScreen>
             const SizedBox(height: 26),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 22),
-              child: _ProgressChart(
+              child: _ExpChart(
                 languages: _languages,
                 selectedIndex: _currentPage,
                 onTap: _goTo,
@@ -237,6 +247,157 @@ class _InicioScreenState extends State<InicioScreen>
           ],
         ),
       ),
+    );
+  }
+}
+
+class _MainDrawer extends StatelessWidget {
+  final List<CourseLanguage> languages;
+
+  const _MainDrawer({required this.languages});
+
+  @override
+  Widget build(BuildContext context) {
+    final totalExp = languages.fold<int>(0, (total, item) => total + item.exp);
+    final bestLanguage = languages.reduce((a, b) => a.exp >= b.exp ? a : b);
+
+    return Drawer(
+      width: 282,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      child: SafeArea(
+        child: Column(
+          children: [
+            Align(
+              alignment: Alignment.centerRight,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 8, 14, 0),
+                child: Image.asset(
+                  'assets/images/logo.jpeg',
+                  height: 44,
+                  errorBuilder: (_, __, ___) => const Icon(
+                    Icons.language,
+                    color: Color(0xFF134343),
+                    size: 36,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            InkWell(
+              onTap: () => _open(context, ProfileScreen(languages: languages)),
+              borderRadius: BorderRadius.circular(18),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 8,
+                ),
+                child: Column(
+                  children: [
+                    CircleAvatar(
+                      radius: 42,
+                      backgroundColor: bestLanguage.color.withValues(
+                        alpha: 0.18,
+                      ),
+                      child: Icon(
+                        Icons.person,
+                        color: bestLanguage.color,
+                        size: 48,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    const Text(
+                      'Mi perfil',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '$totalExp EXP total',
+                      style: const TextStyle(
+                        color: Colors.black54,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                children: [
+                  _DrawerItem(
+                    icon: Icons.settings_outlined,
+                    label: 'Configuración',
+                    onTap: () => _open(context, const SettingsScreen()),
+                  ),
+                  _DrawerItem(
+                    icon: Icons.palette_outlined,
+                    label: 'Tema',
+                    onTap: () => _open(context, const ThemeScreen()),
+                  ),
+                  _DrawerItem(
+                    icon: Icons.help_outline,
+                    label: 'Ayuda',
+                    onTap: () => _open(context, const HelpScreen()),
+                  ),
+                  _DrawerItem(
+                    icon: Icons.workspace_premium_outlined,
+                    label: 'Rangos por dialecto',
+                    onTap: () =>
+                        _open(context, RanksScreen(languages: languages)),
+                  ),
+                  const Divider(height: 26),
+                  _DrawerItem(
+                    icon: Icons.logout,
+                    label: 'Cerrar sesión',
+                    onTap: () => _logout(context),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _open(BuildContext context, Widget screen) {
+    Navigator.pop(context);
+    Navigator.push(context, MaterialPageRoute(builder: (_) => screen));
+  }
+
+  void _logout(BuildContext context) {
+    Navigator.pop(context);
+    Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
+  }
+}
+
+class _DrawerItem extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _DrawerItem({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: Icon(icon, color: const Color(0xFF134343)),
+      title: Text(
+        label,
+        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      onTap: onTap,
     );
   }
 }
@@ -354,7 +515,7 @@ class _LanguageCard extends StatelessWidget {
         margin: const EdgeInsets.symmetric(horizontal: 6),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
             color: isSelected
@@ -397,13 +558,30 @@ class _LanguageCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(99),
-                    child: LinearProgressIndicator(
-                      value: language.progress,
-                      minHeight: 8,
-                      color: language.color,
-                      backgroundColor: language.color.withValues(alpha: 0.16),
+                  Row(
+                    children: [
+                      Icon(language.rank.icon, color: language.color, size: 18),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          language.rank.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${language.streakDays} días de racha',
+                    style: const TextStyle(
+                      color: Colors.black54,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],
@@ -411,7 +589,7 @@ class _LanguageCard extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             Text(
-              '${(language.progress * 100).round()}%',
+              '${language.exp} EXP',
               style: TextStyle(
                 color: language.color,
                 fontWeight: FontWeight.bold,
@@ -425,12 +603,12 @@ class _LanguageCard extends StatelessWidget {
   }
 }
 
-class _ProgressChart extends StatelessWidget {
+class _ExpChart extends StatelessWidget {
   final List<CourseLanguage> languages;
   final int selectedIndex;
   final void Function(int) onTap;
 
-  const _ProgressChart({
+  const _ExpChart({
     required this.languages,
     required this.selectedIndex,
     required this.onTap,
@@ -442,7 +620,7 @@ class _ProgressChart extends StatelessWidget {
       height: 174,
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
       ),
@@ -452,7 +630,10 @@ class _ProgressChart extends StatelessWidget {
         children: List.generate(languages.length, (index) {
           final language = languages[index];
           final isSelected = index == selectedIndex;
-          final barHeight = 104 * language.progress;
+          final maxExp = languages
+              .map((language) => language.exp)
+              .reduce((a, b) => a > b ? a : b);
+          final barHeight = 104 * (language.exp / maxExp);
 
           return GestureDetector(
             onTap: () => onTap(index),
@@ -460,7 +641,7 @@ class _ProgressChart extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 Text(
-                  '${(language.progress * 100).round()}%',
+                  '${language.exp}',
                   style: TextStyle(
                     color: isSelected ? language.color : Colors.black45,
                     fontSize: 11,

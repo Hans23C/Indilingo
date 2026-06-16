@@ -7,6 +7,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:login_indilingo/course_data.dart';
 import 'package:login_indilingo/main.dart';
 
 void main() {
@@ -18,5 +19,23 @@ void main() {
     expect(find.text('Bienvenido a INDIlingo'), findsOneWidget);
     expect(find.text('Ingresar'), findsOneWidget);
     expect(find.text('Crear cuenta'), findsOneWidget);
+  });
+
+  test('Cada dialecto tiene rangos y 50 actividades por apartado', () {
+    final courses = buildCourses();
+
+    expect(courses, hasLength(5));
+    for (final language in courses) {
+      final sectionTitles = language.sections.map((section) => section.title);
+
+      expect(language.sections, hasLength(4));
+      expect(sectionTitles, contains('Racha'));
+      expect(sectionTitles, isNot(contains('Hablado')));
+      expect(language.rank, rankForExp(language.exp));
+
+      for (final section in language.sections) {
+        expect(section.activities, hasLength(maxActivitiesPerSection));
+      }
+    }
   });
 }

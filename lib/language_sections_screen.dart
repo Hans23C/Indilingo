@@ -12,8 +12,6 @@ class LanguageSectionsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF134343),
         title: Text(language.name),
         actions: [
           Padding(
@@ -65,8 +63,17 @@ class LanguageSectionsScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 10),
                         Text(
-                          '${(language.progress * 100).round()}% de avance general',
+                          '${language.exp} EXP · ${language.rank.name}',
                           style: const TextStyle(fontWeight: FontWeight.w600),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          '${language.streakDays} días de racha',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ],
                     ),
@@ -163,18 +170,17 @@ class _SectionCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 10),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(99),
-                child: LinearProgressIndicator(
-                  value: section.progress,
-                  minHeight: 8,
+              Text(
+                '${section.exp} EXP',
+                style: TextStyle(
                   color: language.color,
-                  backgroundColor: Colors.white.withValues(alpha: 0.55),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w900,
                 ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 4),
               Text(
-                '${(section.progress * 100).round()}% completado',
+                '${section.activities.length} actividades',
                 style: const TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
