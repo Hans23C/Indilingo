@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
+import 'app_asset_image.dart';
 import 'course_data.dart';
 import 'theme_controller.dart';
+import 'user_progress_controller.dart';
 
 class ProfileScreen extends StatelessWidget {
   final List<CourseLanguage> languages;
@@ -16,6 +18,7 @@ class ProfileScreen extends StatelessWidget {
       (total, item) => total + item.streakDays,
     );
     final strongest = languages.reduce((a, b) => a.exp >= b.exp ? a : b);
+    final user = UserProgressController.currentUser;
 
     return _MenuPage(
       title: 'Mi perfil',
@@ -28,12 +31,20 @@ class ProfileScreen extends StatelessWidget {
                 CircleAvatar(
                   radius: 48,
                   backgroundColor: strongest.color.withValues(alpha: 0.18),
-                  child: Icon(Icons.person, size: 54, color: strongest.color),
+                  child: AppAssetImage(
+                    asset: strongest.rank.imageAsset,
+                    fallbackIcon: strongest.rank.icon,
+                    color: strongest.color,
+                    size: 74,
+                  ),
                 ),
                 const SizedBox(height: 12),
-                const Text(
-                  'Estudiante INDIlingo',
-                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+                Text(
+                  user.name,
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(

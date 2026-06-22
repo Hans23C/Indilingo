@@ -4,8 +4,11 @@ import 'inicio_screen.dart';
 import 'recuperar_contrasena.dart';
 import 'registros_usuarios.dart';
 import 'theme_controller.dart';
+import 'user_progress_controller.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await UserProgressController.initialize();
   runApp(const IndilingoApp());
 }
 
@@ -115,6 +118,9 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
     setState(() => _isLoading = false);
 
+    await UserProgressController.loginAndSave(userOrEmail: usuario);
+
+    if (!mounted) return;
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => const InicioScreen()),

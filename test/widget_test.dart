@@ -11,7 +11,7 @@ import 'package:login_indilingo/course_data.dart';
 import 'package:login_indilingo/main.dart';
 
 void main() {
-  testWidgets('Muestra la pantalla de inicio de sesión', (
+  testWidgets('Muestra la pantalla de inicio de sesiÃƒÂ³n', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(const IndilingoApp());
@@ -21,7 +21,7 @@ void main() {
     expect(find.text('Crear cuenta'), findsOneWidget);
   });
 
-  test('Cada dialecto tiene rangos y 50 actividades por apartado', () {
+  test('Cada dialecto tiene rangos y 70 actividades por apartado', () {
     final courses = buildCourses();
 
     expect(courses, hasLength(5));
@@ -34,7 +34,11 @@ void main() {
       expect(language.rank, rankForExp(language.exp));
 
       for (final section in language.sections) {
-        expect(section.activities, hasLength(maxActivitiesPerSection));
+        if (section.area == SkillArea.racha) {
+          expect(section.activities, isEmpty);
+        } else {
+          expect(section.activities, hasLength(maxActivitiesPerSection));
+        }
       }
     }
   });

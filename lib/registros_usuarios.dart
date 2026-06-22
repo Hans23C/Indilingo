@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'inicio_screen.dart';
+import 'user_progress_controller.dart';
+
 class RegistroUsuarios extends StatefulWidget {
   const RegistroUsuarios({super.key});
 
@@ -66,10 +69,17 @@ class _RegistroUsuariosState extends State<RegistroUsuarios> {
     await Future.delayed(const Duration(milliseconds: 600));
     if (!mounted) return;
     setState(() => _isLoading = false);
+    await UserProgressController.registerAndSave(name: nombre, email: correo);
 
     _mostrarMensaje('Cuenta creada con éxito');
     await Future.delayed(const Duration(milliseconds: 800));
-    if (mounted) Navigator.pop(context);
+    if (mounted) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const InicioScreen()),
+        (_) => false,
+      );
+    }
   }
 
   void _mostrarMensaje(String msg) {

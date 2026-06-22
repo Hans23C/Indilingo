@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
+import 'app_asset_image.dart';
+import 'ai_assistant_screen.dart';
 import 'course_data.dart';
 import 'language_sections_screen.dart';
 import 'menu_screens.dart';
 import 'ranks_screen.dart';
+import 'user_progress_controller.dart';
 
 class InicioScreen extends StatefulWidget {
   const InicioScreen({super.key});
@@ -21,7 +24,7 @@ class _InicioScreenState extends State<InicioScreen>
   late final AnimationController _mapAnimationController;
   Animation<Matrix4>? _mapAnimation;
 
-  late final List<CourseLanguage> _languages = buildCourses();
+  late List<CourseLanguage> _languages = buildCourses();
   int _currentPage = 0;
 
   @override
@@ -38,6 +41,7 @@ class _InicioScreenState extends State<InicioScreen>
           }
         });
     WidgetsBinding.instance.addPostFrameCallback((_) => _zoomMapTo(0));
+    UserProgressController.changes.addListener(_reloadCourses);
   }
 
   @override
@@ -45,7 +49,13 @@ class _InicioScreenState extends State<InicioScreen>
     _pageController.dispose();
     _mapAnimationController.dispose();
     _mapController.dispose();
+    UserProgressController.changes.removeListener(_reloadCourses);
     super.dispose();
+  }
+
+  void _reloadCourses() {
+    if (!mounted) return;
+    setState(() => _languages = buildCourses());
   }
 
   void _goTo(int index) {
@@ -70,11 +80,19 @@ class _InicioScreenState extends State<InicioScreen>
       620.0,
     );
     const viewportHeight = 220.0;
+    const mapAspectRatio = 774 / 424;
+    final availableRatio = viewportWidth / viewportHeight;
+    final mapWidth = availableRatio > mapAspectRatio
+        ? viewportHeight * mapAspectRatio
+        : viewportWidth;
+    final mapHeight = mapWidth / mapAspectRatio;
+    final mapLeft = (viewportWidth - mapWidth) / 2;
+    final mapTop = (viewportHeight - mapHeight) / 2;
 
     final target = Matrix4.diagonal3Values(scale, scale, 1)
       ..setTranslationRaw(
-        viewportWidth / 2 - focus.dx * viewportWidth * scale,
-        viewportHeight / 2 - focus.dy * viewportHeight * scale,
+        viewportWidth / 2 - (mapLeft + focus.dx * mapWidth) * scale,
+        viewportHeight / 2 - (mapTop + focus.dy * mapHeight) * scale,
         0,
       );
 
@@ -94,6 +112,15 @@ class _InicioScreenState extends State<InicioScreen>
       MaterialPageRoute(
         builder: (_) => LanguageSectionsScreen(language: language),
       ),
+    ).then((_) => _reloadCourses());
+  }
+
+  void _openAssistant() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AiAssistantScreen(languages: _languages),
+      ),
     );
   }
 
@@ -104,6 +131,14 @@ class _InicioScreenState extends State<InicioScreen>
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       drawer: _MainDrawer(languages: _languages),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _openAssistant,
+        tooltip: 'Asistente inteligente',
+        backgroundColor: selected.color,
+        foregroundColor: Colors.white,
+        shape: const CircleBorder(),
+        child: const Icon(Icons.smart_toy_outlined),
+      ),
       appBar: AppBar(
         elevation: 0,
         automaticallyImplyLeading: false,
@@ -153,6 +188,23 @@ class _InicioScreenState extends State<InicioScreen>
                 'Sigue aprendiendo las lenguas originarias de México.',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 15, height: 1.25),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: _HomeSummary(
+                languages: _languages,
+                selected: selected,
+                onContinue: () => _openLanguage(selected),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: _LearningDashboard(
+                language: selected,
+                onOpenLanguage: () => _openLanguage(selected),
               ),
             ),
             const SizedBox(height: 18),
@@ -246,6 +298,378 @@ class _InicioScreenState extends State<InicioScreen>
             const SizedBox(height: 30),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _HomeSummary extends StatelessWidget {
+  final List<CourseLanguage> languages;
+  final CourseLanguage selected;
+  final VoidCallback onContinue;
+
+  const _HomeSummary({
+    required this.languages,
+    required this.selected,
+    required this.onContinue,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final user = UserProgressController.currentUser;
+    final totalExp = languages.fold<int>(0, (total, item) => total + item.exp);
+    final totalStreak = languages.fold<int>(
+      0,
+      (total, item) => total + item.streakDays,
+    );
+    final completed = selected.exp ~/ expPerActivity;
+    final availableActivities = selected.sections
+        .where((section) => section.area != SkillArea.racha)
+        .fold<int>(0, (total, section) => total + section.activities.length);
+    final progress = availableActivities == 0
+        ? 0.0
+        : (completed / availableActivities).clamp(0.0, 1.0);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: selected.color.withValues(alpha: 0.14),
+                child: Icon(Icons.person, color: selected.color),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      user.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    Text(
+                      '$totalExp EXP total · $totalStreak avances de racha',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(99),
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    minHeight: 10,
+                    color: selected.color,
+                    backgroundColor: selected.color.withValues(alpha: 0.12),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                '$completed/$availableActivities',
+                style: TextStyle(
+                  color: selected.color,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            height: 46,
+            child: FilledButton.icon(
+              onPressed: onContinue,
+              icon: const Icon(Icons.play_arrow_rounded),
+              label: Text('Continuar ${selected.name}'),
+              style: FilledButton.styleFrom(
+                backgroundColor: selected.color,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LearningDashboard extends StatelessWidget {
+  final CourseLanguage language;
+  final VoidCallback onOpenLanguage;
+
+  const _LearningDashboard({
+    required this.language,
+    required this.onOpenLanguage,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final practiceSections = language.sections
+        .where((section) => section.area != SkillArea.racha)
+        .toList();
+    final completed = practiceSections.fold<int>(
+      0,
+      (total, section) => total + (section.exp ~/ expPerActivity),
+    );
+    final total = practiceSections.fold<int>(
+      0,
+      (total, section) => total + section.activities.length,
+    );
+    final nextSection = practiceSections.reduce(
+      (a, b) => a.exp <= b.exp ? a : b,
+    );
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.dashboard_outlined, color: language.color),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  'Dashboard de aprendizaje',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: _DashboardMetric(
+                  icon: Icons.check_circle_outline,
+                  label: 'Hechas',
+                  value: '$completed',
+                  color: language.color,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _DashboardMetric(
+                  icon: Icons.flag_outlined,
+                  label: 'Meta',
+                  value: '$total',
+                  color: language.color,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _DashboardMetric(
+                  icon: Icons.local_fire_department_outlined,
+                  label: 'Racha',
+                  value: '${language.streakDays}',
+                  color: language.color,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          ...practiceSections.map((section) {
+            final sectionCompleted = section.exp ~/ expPerActivity;
+            final sectionTotal = section.activities.length;
+            final value = sectionTotal == 0
+                ? 0.0
+                : (sectionCompleted / sectionTotal).clamp(0.0, 1.0);
+            return _SectionProgressLine(
+              section: section,
+              completed: sectionCompleted,
+              total: sectionTotal,
+              value: value,
+              languageColor: language.color,
+            );
+          }),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: language.color.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Row(
+              children: [
+                AppAssetImage(
+                  asset: nextSection.imageAsset,
+                  fallbackIcon: nextSection.icon,
+                  color: language.color,
+                  size: 28,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Sugerencia: continua con ${nextSection.title}, es donde tienes mas espacio para avanzar.',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      height: 1.25,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: onOpenLanguage,
+                  icon: const Icon(Icons.arrow_forward_rounded),
+                  color: language.color,
+                  tooltip: 'Abrir apartados',
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DashboardMetric extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color color;
+
+  const _DashboardMetric({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 24),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: TextStyle(
+              color: color,
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SectionProgressLine extends StatelessWidget {
+  final CourseSection section;
+  final int completed;
+  final int total;
+  final double value;
+  final Color languageColor;
+
+  const _SectionProgressLine({
+    required this.section,
+    required this.completed,
+    required this.total,
+    required this.value,
+    required this.languageColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: section.color,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: AppAssetImage(
+              asset: section.imageAsset,
+              fallbackIcon: section.icon,
+              color: languageColor,
+              size: 26,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        section.title,
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                    Text(
+                      '$completed/$total',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 5),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(99),
+                  child: LinearProgressIndicator(
+                    value: value,
+                    minHeight: 7,
+                    color: languageColor,
+                    backgroundColor: languageColor.withValues(alpha: 0.10),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -351,6 +775,12 @@ class _MainDrawer extends StatelessWidget {
                     onTap: () =>
                         _open(context, RanksScreen(languages: languages)),
                   ),
+                  _DrawerItem(
+                    icon: Icons.smart_toy_outlined,
+                    label: 'Asistente inteligente',
+                    onTap: () =>
+                        _open(context, AiAssistantScreen(languages: languages)),
+                  ),
                   const Divider(height: 26),
                   _DrawerItem(
                     icon: Icons.logout,
@@ -431,19 +861,35 @@ class _ZoomMap extends StatelessWidget {
           boundaryMargin: const EdgeInsets.all(80),
           child: LayoutBuilder(
             builder: (context, constraints) {
+              const mapAspectRatio = 774 / 424;
+              final availableRatio =
+                  constraints.maxWidth / constraints.maxHeight;
+              final mapWidth = availableRatio > mapAspectRatio
+                  ? constraints.maxHeight * mapAspectRatio
+                  : constraints.maxWidth;
+              final mapHeight = mapWidth / mapAspectRatio;
+              final mapLeft = (constraints.maxWidth - mapWidth) / 2;
+              final mapTop = (constraints.maxHeight - mapHeight) / 2;
+
               return Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.asset(
-                    'assets/images/mapa_inicio.png',
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
-                      color: Colors.white,
-                      child: const Center(
-                        child: Icon(
-                          Icons.map_outlined,
-                          color: Color(0xFF134343),
-                          size: 64,
+                  Positioned(
+                    left: mapLeft,
+                    top: mapTop,
+                    width: mapWidth,
+                    height: mapHeight,
+                    child: Image.asset(
+                      'assets/images/mapa_inicio.png',
+                      fit: BoxFit.fill,
+                      errorBuilder: (_, __, ___) => Container(
+                        color: Colors.white,
+                        child: const Center(
+                          child: Icon(
+                            Icons.map_outlined,
+                            color: Color(0xFF134343),
+                            size: 64,
+                          ),
                         ),
                       ),
                     ),
@@ -451,37 +897,77 @@ class _ZoomMap extends StatelessWidget {
                   ...List.generate(languages.length, (index) {
                     final language = languages[index];
                     final selected = index == selectedIndex;
-                    final markerSize = selected ? 34.0 : 24.0;
+                    final markerSize = selected ? 42.0 : 30.0;
                     return Positioned(
                       left:
-                          language.mapFocus.dx * constraints.maxWidth -
+                          mapLeft +
+                          language.mapFocus.dx * mapWidth -
                           markerSize / 2,
                       top:
-                          language.mapFocus.dy * constraints.maxHeight -
+                          mapTop +
+                          language.mapFocus.dy * mapHeight -
                           markerSize / 2,
                       child: GestureDetector(
                         onTap: () => onMarkerTap(index),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 220),
-                          width: markerSize,
-                          height: markerSize,
-                          decoration: BoxDecoration(
-                            color: language.color,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 3),
-                            boxShadow: [
-                              BoxShadow(
-                                color: language.color.withValues(alpha: 0.45),
-                                blurRadius: selected ? 16 : 8,
-                                spreadRadius: selected ? 4 : 1,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 220),
+                              width: markerSize,
+                              height: markerSize,
+                              decoration: BoxDecoration(
+                                color: language.color,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 3,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: language.color.withValues(
+                                      alpha: 0.45,
+                                    ),
+                                    blurRadius: selected ? 18 : 8,
+                                    spreadRadius: selected ? 4 : 1,
+                                  ),
+                                ],
+                              ),
+                              child: Center(
+                                child: AppAssetImage(
+                                  asset: language.imageAsset,
+                                  fallbackIcon: language.icon,
+                                  color: Colors.white,
+                                  size: selected ? 31 : 22,
+                                ),
+                              ),
+                            ),
+                            if (selected) ...[
+                              const SizedBox(height: 3),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 3,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: language.color,
+                                  borderRadius: BorderRadius.circular(999),
+                                  border: Border.all(
+                                    color: Colors.white,
+                                    width: 1.5,
+                                  ),
+                                ),
+                                child: Text(
+                                  language.name,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
                               ),
                             ],
-                          ),
-                          child: Icon(
-                            language.icon,
-                            color: Colors.white,
-                            size: selected ? 18 : 13,
-                          ),
+                          ],
                         ),
                       ),
                     );
@@ -540,7 +1026,14 @@ class _LanguageCard extends StatelessWidget {
                 color: language.color.withValues(alpha: 0.14),
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: Icon(language.icon, color: language.color, size: 30),
+              child: Center(
+                child: AppAssetImage(
+                  asset: language.imageAsset,
+                  fallbackIcon: language.icon,
+                  color: language.color,
+                  size: 42,
+                ),
+              ),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -560,7 +1053,12 @@ class _LanguageCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      Icon(language.rank.icon, color: language.color, size: 18),
+                      AppAssetImage(
+                        asset: language.rank.imageAsset,
+                        fallbackIcon: language.rank.icon,
+                        color: language.color,
+                        size: 22,
+                      ),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
@@ -633,7 +1131,7 @@ class _ExpChart extends StatelessWidget {
           final maxExp = languages
               .map((language) => language.exp)
               .reduce((a, b) => a > b ? a : b);
-          final barHeight = 104 * (language.exp / maxExp);
+          final barHeight = maxExp == 0 ? 0.0 : 104 * (language.exp / maxExp);
 
           return GestureDetector(
             onTap: () => onTap(index),

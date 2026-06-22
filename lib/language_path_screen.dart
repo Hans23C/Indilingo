@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
+import 'app_asset_image.dart';
 import 'activity_screen.dart';
 import 'course_data.dart';
+import 'user_progress_controller.dart';
 
 class LanguagePathScreen extends StatelessWidget {
   final CourseLanguage language;
@@ -13,10 +15,43 @@ class LanguagePathScreen extends StatelessWidget {
     required this.section,
   });
 
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<int>(
+      valueListenable: UserProgressController.changes,
+      builder: (context, _, __) {
+        final currentLanguage = buildCourses().firstWhere(
+          (item) => item.name == language.name,
+          orElse: () => language,
+        );
+        final currentSection = currentLanguage.sections.firstWhere(
+          (item) => item.area == section.area,
+          orElse: () => section,
+        );
+
+        return _LanguagePathView(
+          language: currentLanguage,
+          section: currentSection,
+        );
+      },
+    );
+  }
+}
+
+class _LanguagePathView extends StatelessWidget {
+  final CourseLanguage language;
+  final CourseSection section;
+
+  const _LanguagePathView({required this.language, required this.section});
+
   static const double _pathAspectRatio = 1060 / 4200;
 
   @override
   Widget build(BuildContext context) {
+    if (section.area == SkillArea.racha) {
+      return _StreakVisualScreen(language: language, section: section);
+    }
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(title: Text('${language.name} · ${section.title}')),
@@ -103,6 +138,139 @@ class LanguagePathScreen extends StatelessWidget {
   }
 }
 
+class _StreakVisualScreen extends StatelessWidget {
+  final CourseLanguage language;
+  final CourseSection section;
+
+  const _StreakVisualScreen({required this.language, required this.section});
+
+  @override
+  Widget build(BuildContext context) {
+    final completedActivities = language.exp ~/ expPerActivity;
+    final progressValue = (completedActivities / (maxActivitiesPerSection * 3))
+        .clamp(0.0, 1.0);
+
+    return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: AppBar(title: Text('${language.name} · ${section.title}')),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            Container(
+              padding: const EdgeInsets.all(22),
+              decoration: BoxDecoration(
+                color: section.color,
+                borderRadius: BorderRadius.circular(22),
+              ),
+              child: Column(
+                children: [
+                  AppAssetImage(
+                    asset: section.imageAsset,
+                    fallbackIcon: section.icon,
+                    color: language.color,
+                    size: 112,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    '${language.streakDays}',
+                    style: TextStyle(
+                      color: language.color,
+                      fontSize: 48,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const Text(
+                    'actividades que alimentan tu racha',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(height: 16),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(99),
+                    child: LinearProgressIndicator(
+                      value: progressValue,
+                      minHeight: 12,
+                      color: language.color,
+                      backgroundColor: Colors.white.withValues(alpha: 0.55),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
+            const _StreakInfoTile(
+              icon: Icons.auto_awesome_outlined,
+              title: 'Se actualiza automaticamente',
+              text:
+                  'La racha sube cuando completas actividades nuevas de lectura, escritura, gramatica o repaso en cualquier dialecto.',
+            ),
+            _StreakInfoTile(
+              icon: Icons.bolt_outlined,
+              title: '$completedActivities actividades completadas',
+              text:
+                  'Cada actividad nueva suma EXP y tambien cuenta para tu constancia.',
+            ),
+            _StreakInfoTile(
+              icon: language.rank.icon,
+              title: language.rank.name,
+              text: '${language.exp} EXP acumulada en ${language.name}.',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StreakInfoTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String text;
+
+  const _StreakInfoTile({
+    required this.icon,
+    required this.title,
+    required this.text,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: const Color(0xFF134343), size: 28),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Text(text, style: const TextStyle(height: 1.3)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ProgressHeader extends StatelessWidget {
   final CourseLanguage language;
   final CourseSection section;
@@ -127,7 +295,14 @@ class _ProgressHeader extends StatelessWidget {
               color: section.color,
               borderRadius: BorderRadius.circular(14),
             ),
-            child: Icon(section.icon, color: language.color, size: 30),
+            child: Center(
+              child: AppAssetImage(
+                asset: section.imageAsset,
+                fallbackIcon: section.icon,
+                color: language.color,
+                size: 40,
+              ),
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(

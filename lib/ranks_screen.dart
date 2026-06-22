@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'app_asset_image.dart';
 import 'course_data.dart';
 
 class RanksScreen extends StatelessWidget {
@@ -60,7 +61,14 @@ class _RankCard extends StatelessWidget {
                   color: language.color.withValues(alpha: 0.14),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Icon(language.icon, color: language.color, size: 30),
+                child: Center(
+                  child: AppAssetImage(
+                    asset: language.imageAsset,
+                    fallbackIcon: language.icon,
+                    color: language.color,
+                    size: 42,
+                  ),
+                ),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -82,7 +90,12 @@ class _RankCard extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(language.rank.icon, color: language.color, size: 34),
+              AppAssetImage(
+                asset: language.rank.imageAsset,
+                fallbackIcon: language.rank.icon,
+                color: language.color,
+                size: 48,
+              ),
             ],
           ),
           const SizedBox(height: 14),

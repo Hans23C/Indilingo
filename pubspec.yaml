@@ -12,6 +12,7 @@ dependencies:
   flutter:
     sdk: flutter
   http: ^1.2.0   # ← agregar esta línea
+  shared_preferences: ^2.3.2
 
 dev_dependencies:
   flutter_test:

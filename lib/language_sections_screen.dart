@@ -1,12 +1,35 @@
 import 'package:flutter/material.dart';
 
+import 'app_asset_image.dart';
 import 'course_data.dart';
 import 'language_path_screen.dart';
+import 'user_progress_controller.dart';
 
 class LanguageSectionsScreen extends StatelessWidget {
   final CourseLanguage language;
 
   const LanguageSectionsScreen({super.key, required this.language});
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<int>(
+      valueListenable: UserProgressController.changes,
+      builder: (context, _, __) {
+        final currentLanguage = buildCourses().firstWhere(
+          (item) => item.name == language.name,
+          orElse: () => language,
+        );
+
+        return _LanguageSectionsView(language: currentLanguage);
+      },
+    );
+  }
+}
+
+class _LanguageSectionsView extends StatelessWidget {
+  final CourseLanguage language;
+
+  const _LanguageSectionsView({required this.language});
 
   @override
   Widget build(BuildContext context) {
@@ -45,10 +68,14 @@ class LanguageSectionsScreen extends StatelessWidget {
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    Icon(
-                      language.icon,
-                      color: language.color.withValues(alpha: 0.20),
-                      size: 120,
+                    Opacity(
+                      opacity: 0.22,
+                      child: AppAssetImage(
+                        asset: language.imageAsset,
+                        fallbackIcon: language.icon,
+                        color: language.color,
+                        size: 170,
+                      ),
                     ),
                     Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -117,9 +144,85 @@ class LanguageSectionsScreen extends StatelessWidget {
                   );
                 },
               ),
+              const SizedBox(height: 20),
+              const Text(
+                'Guias de aprendizaje',
+                style: TextStyle(
+                  color: Color(0xFF134343),
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 12),
+              ...language.sections.map((section) {
+                return _LearningGuide(section: section, language: language);
+              }),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _LearningGuide extends StatelessWidget {
+  final CourseLanguage language;
+  final CourseSection section;
+
+  const _LearningGuide({required this.language, required this.section});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              AppAssetImage(
+                asset: section.imageAsset,
+                fallbackIcon: section.icon,
+                color: language.color,
+                size: 30,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  section.title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ...section.learningTips.map((tip) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 7),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    '• ',
+                    style: TextStyle(fontWeight: FontWeight.w900),
+                  ),
+                  Expanded(
+                    child: Text(tip, style: const TextStyle(height: 1.25)),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
       ),
     );
   }
@@ -151,7 +254,12 @@ class _SectionCard extends StatelessWidget {
             children: [
               Align(
                 alignment: Alignment.topRight,
-                child: Icon(section.icon, color: language.color, size: 34),
+                child: AppAssetImage(
+                  asset: section.imageAsset,
+                  fallbackIcon: section.icon,
+                  color: language.color,
+                  size: 54,
+                ),
               ),
               const Spacer(),
               Text(
@@ -171,7 +279,9 @@ class _SectionCard extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               Text(
-                '${section.exp} EXP',
+                section.area == SkillArea.racha
+                    ? 'Vista de racha'
+                    : '${section.exp} EXP',
                 style: TextStyle(
                   color: language.color,
                   fontSize: 13,
@@ -180,7 +290,9 @@ class _SectionCard extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                '${section.activities.length} actividades',
+                section.area == SkillArea.racha
+                    ? '${language.streakDays} avances registrados'
+                    : '${section.activities.length} actividades',
                 style: const TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,

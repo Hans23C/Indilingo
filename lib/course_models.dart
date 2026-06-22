@@ -4,17 +4,27 @@ enum SkillArea { escritura, lectura, racha, gramatica }
 
 enum ActivityStatus { completed, active, available, locked }
 
-enum ActivityType { writing, multipleChoice, streak, sentenceOrder }
+enum ActivityType {
+  writing,
+  multipleChoice,
+  streak,
+  sentenceOrder,
+  readingStory,
+  dialogue,
+  missingWord,
+}
 
 class LanguageRank {
   final String name;
   final int minExp;
   final IconData icon;
+  final String imageAsset;
 
   const LanguageRank({
     required this.name,
     required this.minExp,
     required this.icon,
+    required this.imageAsset,
   });
 }
 
@@ -22,6 +32,7 @@ class CourseLanguage {
   final String name;
   final Color color;
   final IconData icon;
+  final String imageAsset;
   final int exp;
   final int streakDays;
   final LanguageRank rank;
@@ -33,6 +44,7 @@ class CourseLanguage {
     required this.name,
     required this.color,
     required this.icon,
+    required this.imageAsset,
     required this.exp,
     required this.streakDays,
     required this.rank,
@@ -48,8 +60,10 @@ class CourseSection {
   final String nativeTitle;
   final String subtitle;
   final IconData icon;
+  final String imageAsset;
   final Color color;
   final int exp;
+  final List<String> learningTips;
   final List<CourseActivity> activities;
 
   const CourseSection({
@@ -58,8 +72,10 @@ class CourseSection {
     required this.nativeTitle,
     required this.subtitle,
     required this.icon,
+    required this.imageAsset,
     required this.color,
     required this.exp,
+    required this.learningTips,
     required this.activities,
   });
 }
@@ -73,6 +89,9 @@ class CourseActivity {
   final String answer;
   final List<String> options;
   final String successMessage;
+  final String helperText;
+  final String readingText;
+  final String translationText;
   final ActivityStatus status;
 
   const CourseActivity({
@@ -84,6 +103,9 @@ class CourseActivity {
     required this.answer,
     required this.options,
     required this.successMessage,
+    this.helperText = '',
+    this.readingText = '',
+    this.translationText = '',
     required this.status,
   });
 
@@ -97,28 +119,48 @@ class CourseActivity {
       answer: answer,
       options: options,
       successMessage: successMessage,
+      helperText: helperText,
+      readingText: readingText,
+      translationText: translationText,
       status: status ?? this.status,
     );
   }
 }
 
 const int expPerActivity = 10;
-const int maxActivitiesPerSection = 50;
+const int maxActivitiesPerSection = 70;
 
 const List<LanguageRank> languageRanks = [
-  LanguageRank(name: 'Sembrador', minExp: 0, icon: Icons.eco_outlined),
-  LanguageRank(name: 'Maestro Colibrí', minExp: 300, icon: Icons.auto_awesome),
+  LanguageRank(
+    name: 'Sembrador',
+    minExp: 0,
+    icon: Icons.eco_outlined,
+    imageAsset: 'assets/images/logo_sembrador.png',
+  ),
+  LanguageRank(
+    name: 'Maestro Colibrí',
+    minExp: 300,
+    icon: Icons.auto_awesome,
+    imageAsset: 'assets/images/logo_mensajero_colibri.png',
+  ),
   LanguageRank(
     name: 'Guerrero de la Comunidad',
     minExp: 700,
     icon: Icons.shield_outlined,
+    imageAsset: 'assets/images/logo_guerrero_de_la_comunidad.png',
   ),
   LanguageRank(
     name: 'Guardián de la Palabra',
     minExp: 1200,
     icon: Icons.menu_book_outlined,
+    imageAsset: 'assets/images/logo_guardian_de_la_palabra.png',
   ),
-  LanguageRank(name: 'Maestro del Sol', minExp: 1700, icon: Icons.wb_sunny),
+  LanguageRank(
+    name: 'Maestro del Sol',
+    minExp: 1700,
+    icon: Icons.wb_sunny,
+    imageAsset: 'assets/images/logo_mestro_del_sol.png',
+  ),
 ];
 
 LanguageRank rankForExp(int exp) {
