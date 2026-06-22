@@ -20,11 +20,15 @@ class AppAssetImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cacheSize = (size * MediaQuery.devicePixelRatioOf(context)).round();
     final child = asset.isEmpty
         ? _fallbackIcon()
         : Image.asset(
             asset,
             fit: fit,
+            cacheWidth: cacheSize,
+            cacheHeight: cacheSize,
+            filterQuality: FilterQuality.medium,
             errorBuilder: (_, __, ___) => _fallbackIcon(),
           );
 

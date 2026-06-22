@@ -10,19 +10,40 @@ class AppUser {
   final String id;
   final String name;
   final String email;
+  final String profilePhotoPath;
 
-  const AppUser({required this.id, required this.name, required this.email});
+  const AppUser({
+    required this.id,
+    required this.name,
+    required this.email,
+    this.profilePhotoPath = '',
+  });
 
   factory AppUser.fromJson(Map<String, dynamic> json) {
     return AppUser(
       id: json['id'] as String? ?? 'invitado',
       name: json['name'] as String? ?? 'Estudiante INDIlingo',
       email: json['email'] as String? ?? 'invitado@indilingo.local',
+      profilePhotoPath: json['profilePhotoPath'] as String? ?? '',
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {'id': id, 'name': name, 'email': email};
+    return {
+      'id': id,
+      'name': name,
+      'email': email,
+      'profilePhotoPath': profilePhotoPath,
+    };
+  }
+
+  AppUser copyWith({String? name, String? email, String? profilePhotoPath}) {
+    return AppUser(
+      id: id,
+      name: name ?? this.name,
+      email: email ?? this.email,
+      profilePhotoPath: profilePhotoPath ?? this.profilePhotoPath,
+    );
   }
 }
 
@@ -237,6 +258,14 @@ class UserProgressController {
       changes.value++;
     }
     return gainedExp;
+  }
+
+  static Future<void> updateProfilePhotoPath(String path) async {
+    final updated = currentUser.copyWith(profilePhotoPath: path);
+    _users[updated.id] = updated;
+    _currentUser = updated;
+    await _save();
+    changes.value++;
   }
 
   static AppUser _ensureUser({

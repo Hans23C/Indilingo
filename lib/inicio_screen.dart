@@ -5,6 +5,7 @@ import 'ai_assistant_screen.dart';
 import 'course_data.dart';
 import 'language_sections_screen.dart';
 import 'menu_screens.dart';
+import 'profile_avatar.dart';
 import 'ranks_screen.dart';
 import 'user_progress_controller.dart';
 
@@ -190,23 +191,6 @@ class _InicioScreenState extends State<InicioScreen>
                 style: TextStyle(fontSize: 15, height: 1.25),
               ),
             ),
-            const SizedBox(height: 14),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: _HomeSummary(
-                languages: _languages,
-                selected: selected,
-                onContinue: () => _openLanguage(selected),
-              ),
-            ),
-            const SizedBox(height: 14),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: _LearningDashboard(
-                language: selected,
-                onOpenLanguage: () => _openLanguage(selected),
-              ),
-            ),
             const SizedBox(height: 18),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -262,31 +246,24 @@ class _InicioScreenState extends State<InicioScreen>
                 );
               }),
             ),
-            const SizedBox(height: 18),
+            const SizedBox(height: 24),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton.icon(
-                  onPressed: () => _openLanguage(selected),
-                  icon: const Icon(Icons.play_arrow_rounded),
-                  label: Text('Ver apartados de ${selected.name}'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: selected.color,
-                    foregroundColor: Colors.white,
-                    textStyle: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                  ),
-                ),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: _HomeSummary(
+                languages: _languages,
+                selected: selected,
+                onContinue: () => _openLanguage(selected),
               ),
             ),
-            const SizedBox(height: 26),
+            const SizedBox(height: 18),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: _LearningDashboard(
+                language: selected,
+                onOpenLanguage: () => _openLanguage(selected),
+              ),
+            ),
+            const SizedBox(height: 24),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 22),
               child: _ExpChart(
@@ -342,10 +319,7 @@ class _HomeSummary extends StatelessWidget {
         children: [
           Row(
             children: [
-              CircleAvatar(
-                backgroundColor: selected.color.withValues(alpha: 0.14),
-                child: Icon(Icons.person, color: selected.color),
-              ),
+              ProfileAvatar(user: user, language: selected, radius: 21),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -468,37 +442,59 @@ class _LearningDashboard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: _DashboardMetric(
-                  icon: Icons.check_circle_outline,
-                  label: 'Hechas',
-                  value: '$completed',
-                  color: language.color,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _DashboardMetric(
-                  icon: Icons.flag_outlined,
-                  label: 'Meta',
-                  value: '$total',
-                  color: language.color,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _DashboardMetric(
-                  icon: Icons.local_fire_department_outlined,
-                  label: 'Racha',
-                  value: '${language.streakDays}',
-                  color: language.color,
-                ),
-              ),
-            ],
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final itemWidth = (constraints.maxWidth - 10) / 2;
+              return Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  SizedBox(
+                    width: itemWidth,
+                    child: _DashboardMetric(
+                      icon: Icons.bolt_outlined,
+                      label: 'EXP',
+                      value: '${language.exp}',
+                      color: language.color,
+                    ),
+                  ),
+                  SizedBox(
+                    width: itemWidth,
+                    child: _DashboardMetric(
+                      icon: Icons.check_circle_outline,
+                      label: 'Hechas',
+                      value: '$completed',
+                      color: language.color,
+                    ),
+                  ),
+                  SizedBox(
+                    width: itemWidth,
+                    child: _DashboardMetric(
+                      icon: Icons.flag_outlined,
+                      label: 'Meta',
+                      value: '$total',
+                      color: language.color,
+                    ),
+                  ),
+                  SizedBox(
+                    width: itemWidth,
+                    child: _DashboardMetric(
+                      icon: Icons.local_fire_department_outlined,
+                      label: 'Racha',
+                      value: '${language.streakDays}',
+                      color: language.color,
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 18),
+          const Text(
+            'Avance por apartado',
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 10),
           ...practiceSections.map((section) {
             final sectionCompleted = section.exp ~/ expPerActivity;
             final sectionTotal = section.activities.length;
@@ -513,7 +509,7 @@ class _LearningDashboard extends StatelessWidget {
               languageColor: language.color,
             );
           }),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -570,28 +566,48 @@ class _DashboardMetric extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(14),
       ),
-      child: Column(
+      child: Row(
         children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            style: TextStyle(
-              color: color,
-              fontSize: 18,
-              fontWeight: FontWeight.w900,
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(10),
             ),
+            child: Icon(icon, color: color, size: 21),
           ),
-          Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -616,8 +632,14 @@ class _SectionProgressLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: section.color.withValues(alpha: 0.38),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: languageColor.withValues(alpha: 0.08)),
+      ),
       child: Row(
         children: [
           Container(
@@ -684,6 +706,7 @@ class _MainDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
     final totalExp = languages.fold<int>(0, (total, item) => total + item.exp);
     final bestLanguage = languages.reduce((a, b) => a.exp >= b.exp ? a : b);
+    final user = UserProgressController.currentUser;
 
     return Drawer(
       width: 282,
@@ -717,16 +740,10 @@ class _MainDrawer extends StatelessWidget {
                 ),
                 child: Column(
                   children: [
-                    CircleAvatar(
+                    ProfileAvatar(
+                      user: user,
+                      language: bestLanguage,
                       radius: 42,
-                      backgroundColor: bestLanguage.color.withValues(
-                        alpha: 0.18,
-                      ),
-                      child: Icon(
-                        Icons.person,
-                        color: bestLanguage.color,
-                        size: 48,
-                      ),
                     ),
                     const SizedBox(height: 10),
                     const Text(

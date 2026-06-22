@@ -1,23 +1,109 @@
-import 'package:flutter/material.dart';
+import 'dart:io';
 
-import 'app_asset_image.dart';
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+
 import 'course_data.dart';
+import 'profile_avatar.dart';
 import 'theme_controller.dart';
 import 'user_progress_controller.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   final List<CourseLanguage> languages;
 
   const ProfileScreen({super.key, required this.languages});
 
   @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  bool _savingPhoto = false;
+
+  Future<void> _pickProfilePhoto(CourseLanguage strongest) async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 18),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.photo_library_outlined),
+                  title: const Text('Elegir de galeria'),
+                  onTap: () => Navigator.pop(context, ImageSource.gallery),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.photo_camera_outlined),
+                  title: const Text('Tomar foto'),
+                  onTap: () => Navigator.pop(context, ImageSource.camera),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (source == null) return;
+
+    try {
+      setState(() => _savingPhoto = true);
+      final picked = await ImagePicker().pickImage(
+        source: source,
+        imageQuality: 78,
+        maxWidth: 900,
+        maxHeight: 900,
+      );
+      if (picked == null) return;
+
+      final directory = await getApplicationSupportDirectory();
+      final profilesDir = Directory(
+        '${directory.path}${Platform.pathSeparator}profiles',
+      );
+      if (!await profilesDir.exists()) {
+        await profilesDir.create(recursive: true);
+      }
+
+      final extension = picked.path.split('.').last.toLowerCase();
+      final safeExtension = extension.length <= 5 ? extension : 'jpg';
+      final fileName =
+          '${UserProgressController.currentUser.id}_${DateTime.now().millisecondsSinceEpoch}.$safeExtension';
+      final savedFile = await File(
+        picked.path,
+      ).copy('${profilesDir.path}${Platform.pathSeparator}$fileName');
+
+      await UserProgressController.updateProfilePhotoPath(savedFile.path);
+      if (!mounted) return;
+      setState(() {});
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Foto de perfil actualizada')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo guardar la foto')),
+      );
+    } finally {
+      if (mounted) setState(() => _savingPhoto = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final totalExp = languages.fold<int>(0, (total, item) => total + item.exp);
-    final totalStreak = languages.fold<int>(
+    final totalExp = widget.languages.fold<int>(
+      0,
+      (total, item) => total + item.exp,
+    );
+    final totalStreak = widget.languages.fold<int>(
       0,
       (total, item) => total + item.streakDays,
     );
-    final strongest = languages.reduce((a, b) => a.exp >= b.exp ? a : b);
+    final strongest = widget.languages.reduce((a, b) => a.exp >= b.exp ? a : b);
     final user = UserProgressController.currentUser;
 
     return _MenuPage(
@@ -28,17 +114,16 @@ class ProfileScreen extends StatelessWidget {
           Center(
             child: Column(
               children: [
-                CircleAvatar(
-                  radius: 48,
-                  backgroundColor: strongest.color.withValues(alpha: 0.18),
-                  child: AppAssetImage(
-                    asset: strongest.rank.imageAsset,
-                    fallbackIcon: strongest.rank.icon,
-                    color: strongest.color,
-                    size: 74,
-                  ),
+                ProfileAvatar(
+                  user: user,
+                  language: strongest,
+                  radius: 52,
+                  showEditBadge: true,
+                  onTap: _savingPhoto
+                      ? null
+                      : () => _pickProfilePhoto(strongest),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
                 Text(
                   user.name,
                   style: const TextStyle(
@@ -50,6 +135,20 @@ class ProfileScreen extends StatelessWidget {
                 Text(
                   'Dialecto destacado: ${strongest.name}',
                   style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 10),
+                FilledButton.tonalIcon(
+                  onPressed: _savingPhoto
+                      ? null
+                      : () => _pickProfilePhoto(strongest),
+                  icon: _savingPhoto
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.add_a_photo_outlined),
+                  label: Text(_savingPhoto ? 'Guardando...' : 'Cambiar foto'),
                 ),
               ],
             ),

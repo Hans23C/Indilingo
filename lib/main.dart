@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import 'inicio_screen.dart';
-import 'recuperar_contrasena.dart';
 import 'registros_usuarios.dart';
 import 'theme_controller.dart';
 import 'user_progress_controller.dart';
@@ -224,16 +223,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  TextButton(
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const RecuperarContrasenaScreen(),
-                      ),
-                    ),
-                    child: const Text('¿Olvidaste tu contraseña?'),
-                  ),
+                  const SizedBox(height: 16),
                   Wrap(
                     alignment: WrapAlignment.center,
                     crossAxisAlignment: WrapCrossAlignment.center,

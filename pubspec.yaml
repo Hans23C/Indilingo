@@ -1,4 +1,4 @@
-name: login_indilingo
+﻿name: login_indilingo
 description: "A new Flutter project."
 
 publish_to: 'none' 
@@ -11,7 +11,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  http: ^1.2.0   # ← agregar esta línea
+  http: ^1.2.0   # â† agregar esta lÃ­nea
+  image_picker: ^1.1.2
+  path_provider: ^2.1.5
   shared_preferences: ^2.3.2
 
 dev_dependencies:
@@ -20,9 +22,10 @@ dev_dependencies:
   flutter_lints: ^3.0.0
 
 flutter:
-  # Activa los iconos de Material (esto quitará los cuadros con X en las flechas)
+  # Activa los iconos de Material (esto quitarÃ¡ los cuadros con X en las flechas)
   uses-material-design: true
 
-  # Declaración de la carpeta de imágenes
+  # DeclaraciÃ³n de la carpeta de imÃ¡genes
   assets:
     - assets/images/
+
